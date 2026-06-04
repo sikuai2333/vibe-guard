@@ -5,7 +5,7 @@ import { z } from "zod";
 import { qualityGate } from "./check.js";
 import { developmentGuidance, formatDevelopmentGuidance } from "./guidance.js";
 import { getIntegrationStatuses, runIntegrationInit } from "./integrations.js";
-import { contextPacket, getStatus, nextTask } from "./project.js";
+import { contextPacket, formatStatus, getStatus, initProject, nextTask } from "./project.js";
 import { research } from "./research.js";
 import { formatSkillCatalog, readSkillCatalog } from "./skills.js";
 
@@ -128,6 +128,22 @@ server.registerTool(
   async ({ root }) => ({
     content: [{ type: "text", text: contextPacket(root ?? process.cwd()) }]
   })
+);
+
+server.registerTool(
+  "vguard_init_project",
+  {
+    title: "vibe-guard init project",
+    description: "在目标项目中初始化 .vibe-guard/ 治理目录。如果项目尚未初始化，先调用此工具再进行开发。",
+    inputSchema: { root: z.string().optional() }
+  },
+  async ({ root }) => {
+    const target = root ?? process.cwd();
+    const messages = initProject(target);
+    return {
+      content: [{ type: "text", text: messages.join("\n") }]
+    };
+  }
 );
 
 await server.connect(new StdioServerTransport());

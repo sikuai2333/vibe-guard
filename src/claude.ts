@@ -97,12 +97,7 @@ export function formatClaudeVerify(result: ClaudeVerifyResult): string {
 export function buildClaudeProjectBlock(): string {
   return `${buildAgentBlock()}
 
-Claude Code 必须优先使用 vibe-guard MCP：
-
-1. 开始较大开发前，先调用 \`vguard_development_guidance\`。
-2. 如果引导结果显示不建议编码，先完成它列出的 requiredActions。
-3. 需要上下文时，优先调用 \`vguard_context_packet\`，不要先整仓库扫读。
-4. 宣称完成前，调用 \`vguard_quality_gate\` 或运行 \`vguard check\`。
+开始较大开发前，调用 \`vguard_development_guidance\` 检查门禁。宣称完成前，调用 \`vguard_quality_gate\`。
 `;
 }
 

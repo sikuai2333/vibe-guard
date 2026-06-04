@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
-import { installAgent, uninstallAgent, type AgentTarget } from "./agents.js";
+import { installAgent, setupGlobalClaudeMcp, uninstallAgent, type AgentTarget } from "./agents.js";
 import { formatClaudeVerify, verifyClaudeProject } from "./claude.js";
 import { qualityGate } from "./check.js";
 import { doctor, formatDoctor } from "./doctor.js";
@@ -19,6 +19,10 @@ async function main(): Promise<void> {
         console.log(formatDoctor(await doctor()));
         console.log("");
         console.log(formatIntegrationsSummary(await getIntegrationStatuses(process.cwd())));
+        break;
+      }
+      case "setup": {
+        for (const message of setupGlobalClaudeMcp()) console.log(message);
         break;
       }
       case "init": {
@@ -162,6 +166,9 @@ function parseGuidanceIntent(value?: string): GuidanceIntent {
 
 function helpText(): string {
   return `vibe-guard CLI
+
+一次性设置：
+  vguard setup              注册全局 MCP（~/.claude/.mcp.json），所有项目共享
 
 命令：
   vguard doctor

@@ -16,8 +16,8 @@
 
 当前版本是 `0.1.0` MVP。已实现并测试：
 
-- CLI
-- MCP Server
+- CLI（含 `vguard setup` 全局 MCP 注册）
+- MCP Server（10 个工具，含 `vguard_init_project`）
 - 外部集成检测
 - 默认 dry-run 的外部初始化命令
 - prior-art research 调研报告
@@ -73,63 +73,53 @@ npm link
 vguard doctor
 ```
 
-## 在一个项目中使用
+## 快速开始
+
+### 一次性设置
+
+```powershell
+vguard setup
+```
+
+这会在 `~/.claude/.mcp.json` 中注册 vibe-guard MCP server，并写入全局指引。之后每次打开 Claude Code 都会自动加载 vibe-guard 工具。
+
+### 在项目中使用
 
 ```powershell
 vguard init C:\path\to\your-project
-cd C:\path\to\your-project
-vguard integrations .
-vguard skills .
-vguard install-agent claude
-vguard verify-claude .
-vguard research "你的项目想法"
-vguard start .
-vguard check
 ```
 
-`vguard init` 会创建 `.vibe-guard/` 目录，并在 `AGENTS.md` 和 `CLAUDE.md` 中写入托管区块。已有内容会保留；工具只更新 `<!-- vibe-guard:begin -->` 和 `<!-- vibe-guard:end -->` 之间的内容。
+然后在该项目目录下打开 Claude Code，Claude 会自动：
 
-说明：本仓库不提交真实 `.vibe-guard/`、`AGENTS.md`、`CLAUDE.md` 或 `.mcp.json`。这些都是用户在目标项目运行命令后生成的项目状态文件，可能包含本机路径或项目上下文。
+1. 检测 `.vibe-guard/` 目录和门禁状态
+2. 问你想做什么
+3. 自动运行调研、创建规格、拆分任务
+4. 在开发全程通过 MCP 工具检查门禁
 
-## 推荐工作流
+### 工作流（Claude 驱动）
 
-1. `vguard doctor`
-   检查本机运行时和 Agent 工具是否可用。
+用户只需告诉 Claude 想做什么，Claude 会：
 
-2. `vguard init .`
-   初始化项目治理文件。
+1. 调用 `vguard_development_guidance` 检查门禁
+2. 调用 `vguard_prior_art` 调研同类项目
+3. 创建规格和架构文档
+4. 拆分任务（`vguard_next_task`）
+5. 实现代码
+6. 调用 `vguard_quality_gate` 检查质量
 
-3. `vguard integrations .`
-   检查 Spec Kit、Archcore、BMAD、Task Master、agent-install 是已安装、可通过 `npx`/`uvx` 运行，还是缺失。
-
-4. `vguard integration-run <id> .`
-   预览外部工具初始化命令。默认 dry-run，不会执行。
-
-5. `vguard skills .`
-   查看可按需引入的 skills 来源和使用场景。默认不常驻加载。
-
-6. `vguard install-agent claude`
-   在你的项目中生成本机专属 `.mcp.json`，并在 `CLAUDE.md` 中加入最小强制入口。
-
-7. `vguard verify-claude .`
-   验证 Claude Code 是否能看到项目级 MCP 配置和入口说明。
-
-8. `vguard guidance . --intent implement-feature`
-   在编码前生成“是否适合开始编码”的简短判断。
-
-9. `vguard research "项目想法"`
-   搜索 GitHub、npm、PyPI 风格候选，并写入 `.vibe-guard/research.md`。
-
-10. `vguard start .`
-   检查 research、spec、architecture、tasks、quality 这些启动门禁。
-
-11. `vguard next .`
-   从 `.vibe-guard/tasks.json` 读取下一个未阻塞任务。
-
-12. `vguard check`
-   运行可检测到的质量检查，或记录显式跳过原因。
+全程无需手动运行 CLI 命令。
 
 ## 命令说明
+
+### `vguard setup`
+
+一次性设置。在 `~/.claude/.mcp.json` 中注册 vibe-guard MCP server（合并模式，不覆盖已有配置），并写入全局指引文件 `~/.claude/VIBE_GUARD.md`。
+
+```powershell
+vguard setup
+```
+
+设置完成后，重新启动 Claude Code 即可自动加载 vibe-guard 工具。后续项目只需 `vguard init` 即可。
 
 ### `vguard doctor`
 
@@ -147,6 +137,10 @@ vguard check
 - `.vibe-guard/reports/integrations.md`
 - `AGENTS.md` 托管区块
 - `CLAUDE.md` 托管区块
+
+已有内容会保留；工具只更新 `<!-- vibe-guard:begin -->` 和 `<!-- vibe-guard:end -->` 之间的内容。
+
+说明：本仓库不提交真实 `.vibe-guard/`、`AGENTS.md`、`CLAUDE.md` 或 `.mcp.json`。这些都是用户在目标项目运行命令后生成的项目状态文件，可能包含本机路径或项目上下文。
 
 ### `vguard integrations [path] [--json]`
 
@@ -231,20 +225,9 @@ vguard check --skip "仅文档变更"
 
 为指定 Agent 写入非破坏性的使用指引。
 
-对 Claude Code，额外会在目标项目里写入项目级 `.mcp.json`：
+对 Claude Code，会在目标项目里写入项目级 `.mcp.json`（推荐使用 `vguard setup` 做全局配置，而不是每个项目单独配置）。
 
-```json
-{
-  "mcpServers": {
-    "vibe-guard": {
-      "command": "node",
-      "args": [".../dist/mcp.js"]
-    }
-  }
-}
-```
-
-首次进入 Claude Code 时，项目级 MCP 可能需要审批。
+对 Codex 和 Cursor，写入各自的全局指引文件。
 
 仓库里提供 [.mcp.example.json](.mcp.example.json) 作为格式示例。真实 `.mcp.json` 包含本机绝对路径，默认不会提交。
 
@@ -267,7 +250,9 @@ vguard check --skip "仅文档变更"
 
 ## MCP Server
 
-启动 MCP Server：
+推荐通过 `vguard setup` 全局注册 MCP server。注册后，所有项目的 Claude Code 会话都会自动加载 vibe-guard 工具。
+
+手动启动 MCP Server：
 
 ```powershell
 node dist/mcp.js
@@ -290,12 +275,13 @@ vibe-guard-mcp
 - `vguard_integrations`
 - `vguard_integration_run`
 - `vguard_skills`
+- `vguard_init_project`
 
 ## 目录结构
 
 ```text
 src/
-  agents.ts        Agent 指引安装
+  agents.ts        Agent 指引安装 + 全局 MCP 设置
   check.ts         质量门禁检测和执行
   cli.ts           CLI 入口
   doctor.ts        本机环境检查

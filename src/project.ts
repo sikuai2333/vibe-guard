@@ -80,36 +80,32 @@ export function initProject(root: string): string[] {
 export function buildRunbook(): string {
   return `# vibe-guard 运行手册
 
-请通过以下门禁使用本项目：
+本项目通过 vibe-guard MCP 工具和 CLI 进行开发治理。
 
-1. \`vguard research "<idea>"\`：编码前先检查已有项目和可复用方案。
-2. \`vguard integrations\`：确认外部规划工具是已安装、可通过 npx/uvx 运行，还是缺失。
-3. \`vguard integration-run <id>\`：预览外部初始化命令；只有明确需要执行时才使用 \`--execute --yes\`。
-4. 规格门禁：使用 Spec Kit 或本地 spec 文件定义目标和非目标。
-5. 架构门禁：记录模块边界、ADR 或 Archcore 笔记。
-6. 任务门禁：创建带依赖和验收标准的小任务。
-7. \`vguard check\`：运行质量检查，或记录显式跳过原因。
+## 门禁流程
 
-专项能力按需加载：需要 TDD、诊断、架构改进、PRD 或 Agent 行为准则时，再查看 \`.vibe-guard/skills/README.md\`。
+1. 调研门禁：\`vguard research "<idea>"\` 或 MCP \`vguard_prior_art\`
+2. 规格门禁：使用 Spec Kit 或创建 \`.vibe-guard/spec.md\`
+3. 架构门禁：记录模块边界和 ADR
+4. 任务门禁：\`vguard_next_task\` 或 \`.vibe-guard/tasks.json\`
+5. 质量门禁：\`vguard check\` 或 MCP \`vguard_quality_gate\`
 
-外部工具仍以各自目录中的原生输出为准；vibe-guard 只负责协调和记录入口。
+## 跳过质量门禁
+
+\`vguard check --skip "<reason>"\` 会记录跳过原因。
 `;
 }
 
 export function buildAgentBlock(): string {
   return `# vibe-guard 入口
 
-在本项目中实现较大代码变更前：
+本项目使用 vibe-guard 进行开发治理。开发前请通过 MCP 工具或 CLI 检查门禁：
 
-1. 阅读 \`.vibe-guard/runbook.md\`。
-2. 查看 \`.vibe-guard/research.md\` 中的同类项目调研。
-3. 查看 \`.vibe-guard/config.json\` 和 \`.vibe-guard/links.json\`。
-4. 使用 \`vguard integrations\` 确认 Spec Kit、Archcore、BMAD、Task Master 或 agent-install 是否可用。
-5. 使用 \`vguard integration-run <id>\` 预览外部初始化命令；没有 \`--execute --yes\` 不要执行。
-6. 使用 \`vguard_development_guidance\` 或 \`vguard guidance\` 判断是否适合开始编码。
-7. 使用 \`vguard status\`、\`vguard next\` 和 \`vguard check\` 作为项目门禁。
-8. 只有需要专项能力时才查看 \`.vibe-guard/skills/README.md\`，不要把所有 skills 常驻加载进上下文。
-9. 不要绕过 \`vguard check\`；如需跳过，必须用 \`vguard check --skip "<reason>"\` 记录原因。
+- 开始开发前：\`vguard_development_guidance\` 或 \`vguard guidance\`
+- 获取上下文：\`vguard_context_packet\` 或 \`vguard context\`
+- 完成前检查：\`vguard_quality_gate\` 或 \`vguard check\`
+- 查看门禁状态：\`vguard_project_status\` 或 \`vguard status\`
+- 获取下一个任务：\`vguard_next_task\` 或 \`vguard next\`
 `;
 }
 
