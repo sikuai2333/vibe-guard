@@ -1,0 +1,17 @@
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+.env
+.env.*
+.mcp.json
+
+*.vguard-backup-*
+.vibe-guard/backups/
+.vibe-guard/reports/
+
+.DS_Store
+Thumbs.db

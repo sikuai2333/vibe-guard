@@ -1,0 +1,40 @@
+{
+  "name": "vibe-guard",
+  "version": "0.1.0",
+  "description": "面向 AI 辅助开发的本地 CLI 与 MCP 治理编排器。",
+  "type": "module",
+  "bin": {
+    "vguard": "./dist/cli.js",
+    "vibe-guard-mcp": "./dist/mcp.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test dist/**/*.test.js",
+    "doctor": "node dist/cli.js doctor",
+    "prepare": "npm run build",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sikuai2333/vibe-guard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sikuai2333/vibe-guard/issues"
+  },
+  "homepage": "https://github.com/sikuai2333/vibe-guard#readme"
+}
