@@ -8,7 +8,7 @@ interface McpJson {
 }
 
 export function setupGlobalClaudeMcp(): string[] {
-  const configPath = join(homedir(), ".claude", ".mcp.json");
+  const configPath = join(homedir(), ".claude", "mcp.json");
   const existing = readJson<McpJson>(configPath) ?? {};
   const packageRoot = resolve(import.meta.dirname, "..");
   const merged: McpJson = {
