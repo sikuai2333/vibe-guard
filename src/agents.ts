@@ -1,5 +1,5 @@
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { installClaudeProject } from "./claude.js";
 import { readJson, removeManagedBlock, upsertManagedBlock, writeJson } from "./util.js";
 
@@ -10,19 +10,21 @@ interface McpJson {
 export function setupGlobalClaudeMcp(): string[] {
   const configPath = join(homedir(), ".claude", ".mcp.json");
   const existing = readJson<McpJson>(configPath) ?? {};
+  const packageRoot = resolve(import.meta.dirname, "..");
   const merged: McpJson = {
     ...existing,
     mcpServers: {
       ...(existing.mcpServers ?? {}),
       "vibe-guard": {
-        command: "vibe-guard-mcp"
+        command: "node",
+        args: [join(packageRoot, "dist", "mcp.js")]
       }
     }
   };
   writeJson(configPath, merged);
   const messages = [
     `已写入全局 MCP 配置：${configPath}`,
-    `vibe-guard MCP server 已注册为 vibe-guard-mcp（需要先 npm link）`,
+    `vibe-guard MCP server -> node ${join(packageRoot, "dist", "mcp.js")}`,
     "重新启动 Claude Code 后生效。"
   ];
   // also write the global guidance file
