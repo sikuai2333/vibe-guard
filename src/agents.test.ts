@@ -3,7 +3,30 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { installCodexMcp, uninstallCodexMcp } from "./agents.js";
+import { installCodexMcp, setupLocalMcp, uninstallCodexMcp } from "./agents.js";
+
+test("setupLocalMcp configures Claude Code and Codex by default", () => {
+  const root = mkdtempSync(join(tmpdir(), "vguard-"));
+  try {
+    const paths = {
+      claudeConfigPath: join(root, ".claude.json"),
+      claudeGuidancePath: join(root, ".claude", "VIBE_GUARD.md"),
+      codexConfigPath: join(root, ".codex", "config.toml"),
+      codexGuidancePath: join(root, ".codex", "AGENTS.md")
+    };
+
+    const messages = setupLocalMcp("all", root, paths);
+    const claudeConfig = readFileSync(paths.claudeConfigPath, "utf8");
+    const codexConfig = readFileSync(paths.codexConfigPath, "utf8");
+
+    assert.equal(messages.some((message) => message.includes("Claude MCP 配置")), true);
+    assert.equal(messages.some((message) => message.includes("Codex MCP 配置")), true);
+    assert.match(claudeConfig, /"vibe-guard"/);
+    assert.match(codexConfig, /\[mcp_servers\.vibe-guard\]/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test("installCodexMcp writes and updates only the vibe-guard table", () => {
   const root = mkdtempSync(join(tmpdir(), "vguard-"));

@@ -10,11 +10,30 @@ interface McpServerEntry {
   type?: string;
 }
 
-export function setupGlobalClaudeMcp(): string[] {
+export type SetupTarget = "claude" | "codex" | "all";
+
+export interface SetupPaths {
+  claudeConfigPath?: string;
+  claudeGuidancePath?: string;
+  codexConfigPath?: string;
+  codexGuidancePath?: string;
+}
+
+export function setupLocalMcp(target: SetupTarget = "all", packageRoot = resolve(import.meta.dirname, ".."), paths: SetupPaths = {}): string[] {
+  const targets = target === "all" ? ["claude", "codex"] : [target];
+  const messages: string[] = [];
+  for (const item of targets) {
+    if (item === "claude") messages.push(...setupGlobalClaudeMcp(packageRoot, paths));
+    if (item === "codex") messages.push(...setupGlobalCodexMcp(packageRoot, paths));
+  }
+  messages.push("请重启 Claude Code / Codex，让新的 MCP 配置生效。");
+  return messages;
+}
+
+export function setupGlobalClaudeMcp(packageRoot = resolve(import.meta.dirname, ".."), paths: SetupPaths = {}): string[] {
   // Claude Code 从用户级 ~/.claude.json 读取 MCP 配置。
-  const configPath = join(homedir(), ".claude.json");
+  const configPath = paths.claudeConfigPath ?? join(homedir(), ".claude.json");
   const existing = readJson<Record<string, unknown>>(configPath) ?? {};
-  const packageRoot = resolve(import.meta.dirname, "..");
   const mcpServers = (existing.mcpServers ?? {}) as Record<string, McpServerEntry>;
   mcpServers["vibe-guard"] = {
     command: "node",
@@ -29,10 +48,20 @@ export function setupGlobalClaudeMcp(): string[] {
     "重启 Claude Code 后生效。"
   ];
 
-  const guidancePath = join(homedir(), ".claude", "VIBE_GUARD.md");
+  const guidancePath = paths.claudeGuidancePath ?? join(homedir(), ".claude", "VIBE_GUARD.md");
   const result = upsertManagedBlock(guidancePath, globalGuidance());
   messages.push(`Claude 全局指引：${result.changed ? "已更新" : "已保留"} ${guidancePath}`);
   return messages;
+}
+
+export function setupGlobalCodexMcp(packageRoot = resolve(import.meta.dirname, ".."), paths: SetupPaths = {}): string[] {
+  const path = paths.codexGuidancePath ?? join(homedir(), ".codex", "AGENTS.md");
+  const result = upsertManagedBlock(path, agentDoc("Codex"));
+  const configResult = installCodexMcp(packageRoot, paths.codexConfigPath);
+  return [
+    `Codex MCP 配置：${configResult.changed ? "已更新" : "已保留"} ${configResult.path}`,
+    `Codex 指引：${result.changed ? "已更新" : "已保留"} ${path}`
+  ];
 }
 
 export type AgentTarget = "claude" | "codex" | "cursor" | "all";
@@ -45,11 +74,7 @@ export function installAgent(target: AgentTarget, packageRoot: string, projectRo
       messages.push(...installClaudeProject(projectRoot, packageRoot).messages);
     }
     if (item === "codex") {
-      const path = join(homedir(), ".codex", "AGENTS.md");
-      const result = upsertManagedBlock(path, agentDoc("Codex"));
-      const configResult = installCodexMcp(packageRoot);
-      messages.push(`Codex 指引：${result.changed ? "已更新" : "已保留"} ${path}`);
-      messages.push(`Codex MCP 配置：${configResult.changed ? "已更新" : "已保留"} ${configResult.path}`);
+      messages.push(...setupGlobalCodexMcp(packageRoot));
     }
     if (item === "cursor") {
       const path = join(homedir(), ".cursor", "rules", "vibe-guard.mdc");

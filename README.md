@@ -47,30 +47,22 @@
 检查本机环境：
 
 ```powershell
-node dist/cli.js doctor
-```
-
-如果已经执行过 `npm link`：
-
-```powershell
 vguard doctor
 ```
 
-## 从源码安装
+## 一行安装
 
 ```powershell
-git clone https://github.com/sikuai2333/vibe-guard.git
-cd vibe-guard
-npm install
-npm run build
-npm test
-npm link
+npm install -g github:sikuai2333/vibe-guard; vguard setup
 ```
 
-之后可以直接使用：
+这会把 `vguard` 安装到本机，并同时注册 Claude Code 与 Codex 的全局 MCP 配置。安装完成后重启 Claude Code / Codex，新会话会自动加载 vibe-guard MCP tools。
+
+只配置某一个宿主：
 
 ```powershell
-vguard doctor
+vguard setup claude
+vguard setup codex
 ```
 
 ## 快速开始
@@ -81,7 +73,7 @@ vguard doctor
 vguard setup
 ```
 
-这会在 `~/.claude.json` 中注册 vibe-guard MCP server，之后每次打开 Claude Code 都会自动加载 vibe-guard 工具。
+这会注册 Claude Code 与 Codex 的全局 MCP server，之后新打开的 Claude Code / Codex 会话会自动加载 vibe-guard 工具。
 
 ### 在项目中使用
 
@@ -111,15 +103,20 @@ vguard init C:\path\to\your-project
 
 ## 命令说明
 
-### `vguard setup`
+### `vguard setup [claude|codex|all]`
 
-一次性设置。在 `~/.claude.json` 中注册 vibe-guard MCP server（合并模式，不覆盖已有配置），并写入全局指引文件 `~/.claude/VIBE_GUARD.md`。
+一次性设置。默认同时配置 Claude Code 与 Codex：
+
+- Claude Code：写入 `~/.claude.json`，并写入全局指引文件 `~/.claude/VIBE_GUARD.md`
+- Codex：写入 `~/.codex/config.toml`，并写入全局指引文件 `~/.codex/AGENTS.md`
+
+所有写入都是合并模式，不覆盖已有其他配置。
 
 ```powershell
 vguard setup
 ```
 
-设置完成后，重新启动 Claude Code 即可自动加载 vibe-guard 工具。后续项目只需 `vguard init` 即可。
+设置完成后，重新启动 Claude Code / Codex 即可自动加载 vibe-guard 工具。后续项目只需 `vguard init` 即可。
 
 ### `vguard doctor`
 
@@ -227,7 +224,7 @@ vguard check --skip "仅文档变更"
 
 对 Claude Code，会在目标项目里写入项目级 `.mcp.json`（推荐使用 `vguard setup` 做全局配置，而不是每个项目单独配置）。
 
-对 Codex 和 Cursor，写入各自的全局指引文件。
+对 Codex，会写入 `~/.codex/config.toml` 的 MCP server 配置和 `~/.codex/AGENTS.md` 指引。对 Cursor，写入全局指引文件。
 
 仓库里提供 [.mcp.example.json](.mcp.example.json) 作为格式示例。真实 `.mcp.json` 包含本机绝对路径，默认不会提交。
 
@@ -250,7 +247,7 @@ vguard check --skip "仅文档变更"
 
 ## MCP Server
 
-推荐通过 `vguard setup` 全局注册 MCP server。注册后，所有项目的 Claude Code 会话都会自动加载 vibe-guard 工具。
+推荐通过 `vguard setup` 全局注册 MCP server。注册后，所有项目的新 Claude Code / Codex 会话都会自动加载 vibe-guard 工具。
 
 手动启动 MCP Server：
 
@@ -306,6 +303,8 @@ src/
 ## 开发
 
 ```powershell
+git clone https://github.com/sikuai2333/vibe-guard.git
+cd vibe-guard
 npm install
 npm run build
 npm test

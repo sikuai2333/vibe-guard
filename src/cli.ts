@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
-import { installAgent, setupGlobalClaudeMcp, uninstallAgent, type AgentTarget } from "./agents.js";
+import { installAgent, setupLocalMcp, uninstallAgent, type AgentTarget, type SetupTarget } from "./agents.js";
 import { formatClaudeVerify, verifyClaudeProject } from "./claude.js";
 import { qualityGate } from "./check.js";
 import { doctor, formatDoctor } from "./doctor.js";
@@ -22,7 +22,7 @@ async function main(): Promise<void> {
         break;
       }
       case "setup": {
-        for (const message of setupGlobalClaudeMcp()) console.log(message);
+        for (const message of setupLocalMcp(parseSetupTarget(args[0]), resolve(import.meta.dirname, ".."))) console.log(message);
         break;
       }
       case "init": {
@@ -145,6 +145,12 @@ function parseAgent(value?: string): AgentTarget {
   throw new Error("用法：vguard install-agent claude|codex|cursor|all");
 }
 
+function parseSetupTarget(value?: string): SetupTarget {
+  if (!value) return "all";
+  if (value === "claude" || value === "codex" || value === "all") return value;
+  throw new Error("用法：vguard setup [claude|codex|all]");
+}
+
 function parseIntegration(value?: string): IntegrationId {
   if (value === "spec-kit" || value === "archcore" || value === "bmad" || value === "task-master" || value === "agent-install") return value;
   throw new Error("用法：vguard integration-run spec-kit|archcore|bmad|task-master|agent-install [path] [--execute --yes]");
@@ -168,7 +174,9 @@ function helpText(): string {
   return `vibe-guard CLI
 
 一次性设置：
-  vguard setup              注册全局 MCP（~/.claude.json），所有项目共享
+  vguard setup              注册 Claude Code + Codex 全局 MCP
+  vguard setup claude       只注册 Claude Code
+  vguard setup codex        只注册 Codex
 
 命令：
   vguard doctor
