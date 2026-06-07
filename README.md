@@ -81,7 +81,7 @@ vguard doctor
 vguard setup
 ```
 
-这会在 `~/.claude/.mcp.json` 中注册 vibe-guard MCP server，并写入全局指引。之后每次打开 Claude Code 都会自动加载 vibe-guard 工具。
+这会在 `~/.claude.json` 中注册 vibe-guard MCP server，之后每次打开 Claude Code 都会自动加载 vibe-guard 工具。
 
 ### 在项目中使用
 
@@ -113,7 +113,7 @@ vguard init C:\path\to\your-project
 
 ### `vguard setup`
 
-一次性设置。在 `~/.claude/.mcp.json` 中注册 vibe-guard MCP server（合并模式，不覆盖已有配置），并写入全局指引文件 `~/.claude/VIBE_GUARD.md`。
+一次性设置。在 `~/.claude.json` 中注册 vibe-guard MCP server（合并模式，不覆盖已有配置），并写入全局指引文件 `~/.claude/VIBE_GUARD.md`。
 
 ```powershell
 vguard setup

@@ -1,36 +1,37 @@
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { installClaudeProject } from "./claude.js";
-import { readJson, removeManagedBlock, upsertManagedBlock, writeJson } from "./util.js";
+import { readJson, readText, removeManagedBlock, upsertManagedBlock, writeJson, writeText } from "./util.js";
 
-interface McpJson {
-  mcpServers?: Record<string, { command: string; args?: string[]; env?: Record<string, string> }>;
+interface McpServerEntry {
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  type?: string;
 }
 
 export function setupGlobalClaudeMcp(): string[] {
-  const configPath = join(homedir(), ".claude", "mcp.json");
-  const existing = readJson<McpJson>(configPath) ?? {};
+  // Claude Code 从用户级 ~/.claude.json 读取 MCP 配置。
+  const configPath = join(homedir(), ".claude.json");
+  const existing = readJson<Record<string, unknown>>(configPath) ?? {};
   const packageRoot = resolve(import.meta.dirname, "..");
-  const merged: McpJson = {
-    ...existing,
-    mcpServers: {
-      ...(existing.mcpServers ?? {}),
-      "vibe-guard": {
-        command: "node",
-        args: [join(packageRoot, "dist", "mcp.js")]
-      }
-    }
+  const mcpServers = (existing.mcpServers ?? {}) as Record<string, McpServerEntry>;
+  mcpServers["vibe-guard"] = {
+    command: "node",
+    args: [join(packageRoot, "dist", "mcp.js")]
   };
+  const merged = { ...existing, mcpServers };
   writeJson(configPath, merged);
+
   const messages = [
-    `已写入全局 MCP 配置：${configPath}`,
-    `vibe-guard MCP server -> node ${join(packageRoot, "dist", "mcp.js")}`,
-    "重新启动 Claude Code 后生效。"
+    `Claude MCP 配置：${configPath}`,
+    `vibe-guard MCP server：node ${join(packageRoot, "dist", "mcp.js")}`,
+    "重启 Claude Code 后生效。"
   ];
-  // also write the global guidance file
+
   const guidancePath = join(homedir(), ".claude", "VIBE_GUARD.md");
   const result = upsertManagedBlock(guidancePath, globalGuidance());
-  messages.push(`${result.changed ? "已写入" : "已保留"} 全局指引：${guidancePath}`);
+  messages.push(`Claude 全局指引：${result.changed ? "已更新" : "已保留"} ${guidancePath}`);
   return messages;
 }
 
@@ -45,17 +46,19 @@ export function installAgent(target: AgentTarget, packageRoot: string, projectRo
     }
     if (item === "codex") {
       const path = join(homedir(), ".codex", "AGENTS.md");
-      const result = upsertManagedBlock(path, agentDoc("Codex", packageRoot));
-      messages.push(`${result.changed ? "已安装" : "已保留"} Codex 指引：${path}`);
+      const result = upsertManagedBlock(path, agentDoc("Codex"));
+      const configResult = installCodexMcp(packageRoot);
+      messages.push(`Codex 指引：${result.changed ? "已更新" : "已保留"} ${path}`);
+      messages.push(`Codex MCP 配置：${configResult.changed ? "已更新" : "已保留"} ${configResult.path}`);
     }
     if (item === "cursor") {
       const path = join(homedir(), ".cursor", "rules", "vibe-guard.mdc");
-      const result = upsertManagedBlock(path, agentDoc("Cursor", packageRoot));
-      messages.push(`${result.changed ? "已安装" : "已保留"} Cursor 指引：${path}`);
+      const result = upsertManagedBlock(path, agentDoc("Cursor"));
+      messages.push(`Cursor 指引：${result.changed ? "已更新" : "已保留"} ${path}`);
     }
   }
   messages.push("MCP 命令：node dist/mcp.js");
-  messages.push("使用 `vguard integrations` 查看 Spec Kit、Archcore、BMAD、Task Master 和 agent-install 命令。");
+  messages.push("使用 `vguard integrations` 查看 Spec Kit、Archcore、BMAD、Task Master 和 agent-install。");
   return messages;
 }
 
@@ -70,13 +73,57 @@ export function uninstallAgent(target: AgentTarget): string[] {
           ? join(homedir(), ".codex", "AGENTS.md")
           : join(homedir(), ".cursor", "rules", "vibe-guard.mdc");
     const result = removeManagedBlock(path);
-    messages.push(`${result.changed ? "已移除" : "未找到"} ${item} 托管区块：${path}`);
+    messages.push(`${item} 指引：${result.changed ? "已移除" : "未找到"} ${path}`);
+    if (item === "codex") {
+      const configResult = uninstallCodexMcp();
+      messages.push(`Codex MCP 配置：${configResult.changed ? "已移除" : "未找到"} ${configResult.path}`);
+    }
   }
   return messages;
 }
 
+export function installCodexMcp(packageRoot: string, configPath = join(homedir(), ".codex", "config.toml")): { path: string; changed: boolean } {
+  const mcpPath = resolve(packageRoot, "dist", "mcp.js");
+  const block = ["[mcp_servers.vibe-guard]", 'command = "node"', `args = [${tomlString(mcpPath)}]`].join("\n");
+  return upsertTomlTable(configPath, "mcp_servers.vibe-guard", block);
+}
+
+export function uninstallCodexMcp(configPath = join(homedir(), ".codex", "config.toml")): { path: string; changed: boolean } {
+  return removeTomlTable(configPath, "mcp_servers.vibe-guard");
+}
+
 function expandTargets(target: AgentTarget): Array<Exclude<AgentTarget, "all">> {
   return target === "all" ? ["claude", "codex", "cursor"] : [target];
+}
+
+function upsertTomlTable(path: string, table: string, block: string): { path: string; changed: boolean } {
+  const existing = readText(path) ?? "";
+  const pattern = tomlTablePattern(table);
+  const next = pattern.test(existing)
+    ? existing.replace(pattern, (match) => `${match.startsWith("\n") ? "\n" : ""}${block}`)
+    : `${existing.trimEnd()}${existing.trimEnd() ? "\n\n" : ""}${block}\n`;
+  const normalized = next.endsWith("\n") ? next : `${next}\n`;
+  if (normalized === existing) return { path, changed: false };
+  writeText(path, normalized);
+  return { path, changed: true };
+}
+
+function removeTomlTable(path: string, table: string): { path: string; changed: boolean } {
+  const existing = readText(path);
+  if (!existing) return { path, changed: false };
+  const next = existing.replace(tomlTablePattern(table), (match) => (match.startsWith("\n") ? "\n" : ""));
+  if (next === existing) return { path, changed: false };
+  writeText(path, `${next.replace(/\n{3,}/g, "\n\n").trimEnd()}\n`);
+  return { path, changed: true };
+}
+
+function tomlTablePattern(table: string): RegExp {
+  const escaped = table.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?:^|\\r?\\n)\\[${escaped}\\]\\r?\\n[\\s\\S]*?(?=\\r?\\n\\[|$)`);
+}
+
+function tomlString(value: string): string {
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
 function globalGuidance(): string {
@@ -88,14 +135,12 @@ function globalGuidance(): string {
 2. 需要上下文时，调用 \`vguard_context_packet\`。
 3. 宣称完成前，调用 \`vguard_quality_gate\`。
 
-如果项目没有 \`.vibe-guard/\` 目录，使用 \`vguard_init_project\` 初始化。
+如果项目没有 \`.vibe-guard/\` 目录，先调用 \`vguard_init_project\` 初始化。
 `;
 }
 
-function agentDoc(agent: string, _packageRoot: string): string {
-  if (agent === "Claude Code") {
-    return globalGuidance();
-  }
+function agentDoc(agent: string): string {
+  if (agent === "Claude Code") return globalGuidance();
   return `# ${agent} 的 vibe-guard 指引
 
 请将 vibe-guard 作为项目治理入口。

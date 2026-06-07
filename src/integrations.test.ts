@@ -62,14 +62,20 @@ test("integration run refuses unresolved placeholders", async () => {
 
 test("integration execution backs up existing managed paths before command", async () => {
   const root = mkdtempSync(join(tmpdir(), "vguard-"));
+  const archcore = INTEGRATIONS.find((integration) => integration.id === "archcore");
+  const originalCommands = archcore?.initCommands;
   try {
+    assert.ok(archcore);
+    archcore.initCommands = [`"${process.execPath}" --version`];
     mkdirSync(join(root, ".archcore"));
     writeFileSync(join(root, ".archcore", "rules.md"), "existing", "utf8");
     const result = await runIntegrationInit(root, "archcore", { execute: true, yes: true });
     assert.equal(result.dryRun, false);
+    assert.equal(result.ok, true);
     assert.equal(result.backups.length, 1);
     assert.equal(existsSync(join(result.backups[0] ?? "", "rules.md")), true);
   } finally {
+    if (archcore && originalCommands) archcore.initCommands = originalCommands;
     rmSync(root, { recursive: true, force: true });
   }
 });

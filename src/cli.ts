@@ -112,7 +112,7 @@ async function main(): Promise<void> {
       }
       case "install-agent": {
         const target = parseAgent(args[0]);
-        for (const message of installAgent(target, resolve("."), process.cwd())) console.log(message);
+        for (const message of installAgent(target, resolve(import.meta.dirname, ".."), process.cwd())) console.log(message);
         break;
       }
       case "verify-claude": {
@@ -168,7 +168,7 @@ function helpText(): string {
   return `vibe-guard CLI
 
 一次性设置：
-  vguard setup              注册全局 MCP（~/.claude/.mcp.json），所有项目共享
+  vguard setup              注册全局 MCP（~/.claude.json），所有项目共享
 
 命令：
   vguard doctor
